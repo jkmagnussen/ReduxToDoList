@@ -72,7 +72,8 @@
 
       // App Code
 
-      //State Tree
+      //actions to place in the pure function reducer
+
       const ADD_TODO = "ADD_TODO";
       const REMOVE_TODO = "REMOVE_TODO";
       const TOGGLE_TODO = "TOGGLE_TODO";
@@ -113,6 +114,8 @@
           id,
         };
       }
+
+      //Reducer
 
       function todos(state = [], action) {
         switch (action.type) {
