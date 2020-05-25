@@ -4,7 +4,6 @@
     <title>Udacity Todos Goals</title>
     <link rel="stylesheet" href="./style.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/3.7.2/redux.min.js"></script>
-
     <script src="https://unpkg.com/react@16.3.0-alpha.1/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@16.3.0-alpha.1/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
@@ -22,10 +21,6 @@
       <input id="goal" type="text" placeholder="Add Goal" />
       <button id="goalBtn">Add Goal</button>
       <ul id="goals"></ul>
-
-      <hr />
-
-      <div id="app"></div>
     </div>
 
     <hr />
@@ -41,16 +36,12 @@
       }
 
       // App Code
-
-      //actions to place in the pure function reducer
-
       const ADD_TODO = "ADD_TODO";
       const REMOVE_TODO = "REMOVE_TODO";
       const TOGGLE_TODO = "TOGGLE_TODO";
       const ADD_GOAL = "ADD_GOAL";
       const REMOVE_GOAL = "REMOVE_GOAL";
 
-      // App must
       function addTodoAction(todo) {
         return {
           type: ADD_TODO,
@@ -86,8 +77,6 @@
         };
       }
 
-      //Reducer section which sets the state to empty array and adds action.
-
       function todos(state = [], action) {
         switch (action.type) {
           case ADD_TODO:
@@ -116,16 +105,6 @@
         }
       }
 
-      // combine reducers and add middleware
-      const store = Redux.createStore(
-        Redux.combineReducers({
-          todos,
-          goals,
-        }),
-        Redux.applyMiddleware(checker)
-      );
-
-      // Middleware
       const checker = (store) => (next) => (action) => {
         if (
           action.type === ADD_TODO &&
@@ -144,19 +123,34 @@
         return next(action);
       };
 
-      // Get the state of goals and todo's to show in list
+      const logger = (store) => (next) => (action) => {
+        console.group(action.type);
+        console.log("The action: ", action);
+        const result = next(action);
+        console.log("The new state: ", store.getState());
+        console.groupEnd();
+        return result;
+      };
+
+      const store = Redux.createStore(
+        Redux.combineReducers({
+          todos,
+          goals,
+        }),
+        Redux.applyMiddleware(checker, logger)
+      );
 
       store.subscribe(() => {
         const { goals, todos } = store.getState();
 
-        document.getElementById("todos").innerHTML = "";
         document.getElementById("goals").innerHTML = "";
+        document.getElementById("todos").innerHTML = "";
 
         goals.forEach(addGoalToDOM);
         todos.forEach(addTodoToDOM);
       });
 
-      //DOM code
+      // DOM code
       function addTodo() {
         const input = document.getElementById("todo");
         const name = input.value;
@@ -175,6 +169,7 @@
         const input = document.getElementById("goal");
         const name = input.value;
         input.value = "";
+
         store.dispatch(
           addGoalAction({
             id: generateId(),
@@ -185,21 +180,7 @@
 
       document.getElementById("todoBtn").addEventListener("click", addTodo);
 
-      function addTodoToDOM(todo) {
-        const node = document.createElement("li");
-        const text = document.createTextNode(todo.name);
-
-        const removeBtn = createRemoveButton(() => {
-          store.dispatch(removeTodoAction(todo.id));
-        });
-        node.appendChild(text);
-        node.appendChild(removeBtn);
-        node.style.textDecoration = todo.complete ? "line-through" : "none";
-        node.addEventListener("click", () => {
-          store.dispatch(toggleTodoAction(todo.id));
-        });
-        document.getElementById("todos").appendChild(node);
-      }
+      document.getElementById("goalBtn").addEventListener("click", addGoal);
 
       function createRemoveButton(onClick) {
         const removeBtn = document.createElement("button");
@@ -208,20 +189,36 @@
         return removeBtn;
       }
 
+      function addTodoToDOM(todo) {
+        const node = document.createElement("li");
+        const text = document.createTextNode(todo.name);
+
+        const removeBtn = createRemoveButton(() => {
+          store.dispatch(removeTodoAction(todo.id));
+        });
+
+        node.appendChild(text);
+        node.appendChild(removeBtn);
+        node.style.textDecoration = todo.complete ? "line-through" : "none";
+        node.addEventListener("click", () => {
+          store.dispatch(toggleTodoAction(todo.id));
+        });
+
+        document.getElementById("todos").appendChild(node);
+      }
+
       function addGoalToDOM(goal) {
         const node = document.createElement("li");
         const text = document.createTextNode(goal.name);
-
         const removeBtn = createRemoveButton(() => {
           store.dispatch(removeGoalAction(goal.id));
         });
 
         node.appendChild(text);
         node.appendChild(removeBtn);
-        document.getElementById("goals").appendChild(node);
-      }
 
-      document.getElementById("goalBtn").addEventListener("click", addGoal);
+        document.getElementById("goals").append(node);
+      }
     </script>
 
     <script type="text/babel">
@@ -247,17 +244,17 @@
             })
           );
         };
-
         render() {
           return (
             <div>
-              <h1> To Do List </h1>
+              <h1>Todo List</h1>
               <input
                 type="text"
                 placeholder="Add Todo"
                 ref={(input) => (this.input = input)}
               />
               <button onClick={this.addItem}>Add Todo</button>
+
               <List />
             </div>
           );
@@ -265,10 +262,30 @@
       }
 
       class Goals extends React.Component {
+        addItem = (e) => {
+          e.preventDefault();
+          const name = this.input.value;
+          this.input.value = "";
+
+          this.props.store.dispatch(
+            addGoalAction({
+              name,
+              complete: false,
+              id: generateId(),
+            })
+          );
+        };
         render() {
           return (
             <div>
-              GOALS
+              <h1>Goals</h1>
+              <input
+                type="text"
+                placeholder="Add Todo"
+                ref={(input) => (this.input = input)}
+              />
+              <button onClick={this.addItem}>Add Todo</button>
+
               <List />
             </div>
           );
@@ -280,7 +297,7 @@
           return (
             <div>
               <Todos store={this.props.store} />
-              <Goals />
+              <Goals store={this.props.store} />
             </div>
           );
         }
