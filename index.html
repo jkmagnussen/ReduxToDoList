@@ -3,23 +3,15 @@
   <head>
     <title>Udacity Todos Goals</title>
     <link rel="stylesheet" href="./style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/3.7.2/redux.min.js"></script>
+
+    <script src="https://unpkg.com/react@16.3.0-alpha.1/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16.3.0-alpha.1/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
   </head>
 
   <body>
     <div>
-      <h4>
-        This project demonstrates a custom code redux library, in which the
-        functioning state has been connected to a simple front-end UI. The
-        script has been commented out and should be broken into three sections.
-        Firstly the custom library code would be typically imported as a
-        seperayte module, secondly the 'App Code' would be seperated into it's
-        own module, pertainign to the interface between the library and the
-        application. Finallly the DOM code, written near the bottom of the
-        script, would pertain to a typical JS file that leverages the app
-        interface logic by tethering it to the UI.
-      </h4>
-
-      <img src="./diagram.png" />
       <h1>Todo List</h1>
       <input id="todo" type="text" placeholder="Add Todo" />
       <button id="todoBtn">Add Todo</button>
@@ -30,44 +22,22 @@
       <input id="goal" type="text" placeholder="Add Goal" />
       <button id="goalBtn">Add Goal</button>
       <ul id="goals"></ul>
+
+      <hr />
+
+      <div id="app"></div>
     </div>
+
+    <hr />
+
+    <div id="app"></div>
+
     <script type="text/javascript">
       function generateId() {
         return (
           Math.random().toString(36).substring(2) +
           new Date().getTime().toString(36)
         );
-      }
-      // Library Code
-      function createStore(reducer) {
-        // The store should have four parts
-        // 1. The state
-        // 2. Get the state.
-        // 3. Listen to changes on the state.
-        // 4. Update the state
-
-        let state;
-        let listeners = [];
-
-        const getState = () => state;
-
-        const subscribe = (listener) => {
-          listeners.push(listener);
-          return () => {
-            listeners = listeners.filter((l) => l !== listener);
-          };
-        };
-
-        const dispatch = (action) => {
-          state = reducer(state, action);
-          listeners.forEach((listener) => listener());
-        };
-
-        return {
-          getState,
-          subscribe,
-          dispatch,
-        };
       }
 
       // App Code
@@ -80,6 +50,7 @@
       const ADD_GOAL = "ADD_GOAL";
       const REMOVE_GOAL = "REMOVE_GOAL";
 
+      // App must
       function addTodoAction(todo) {
         return {
           type: ADD_TODO,
@@ -115,7 +86,7 @@
         };
       }
 
-      //Reducer
+      //Reducer section which sets the state to empty array and adds action.
 
       function todos(state = [], action) {
         switch (action.type) {
@@ -145,14 +116,35 @@
         }
       }
 
-      function app(state = {}, action) {
-        return {
-          todos: todos(state.todos, action),
-          goals: goals(state.goals, action),
-        };
-      }
+      // combine reducers and add middleware
+      const store = Redux.createStore(
+        Redux.combineReducers({
+          todos,
+          goals,
+        }),
+        Redux.applyMiddleware(checker)
+      );
 
-      const store = createStore(app);
+      // Middleware
+      const checker = (store) => (next) => (action) => {
+        if (
+          action.type === ADD_TODO &&
+          action.todo.name.toLowerCase().includes("bitcoin")
+        ) {
+          return alert("Nope. That's a bad idea.");
+        }
+
+        if (
+          action.type === ADD_GOAL &&
+          action.goal.name.toLowerCase().includes("bitcoin")
+        ) {
+          return alert("Nope. That's a bad idea.");
+        }
+
+        return next(action);
+      };
+
+      // Get the state of goals and todo's to show in list
 
       store.subscribe(() => {
         const { goals, todos } = store.getState();
@@ -163,50 +155,6 @@
         goals.forEach(addGoalToDOM);
         todos.forEach(addTodoToDOM);
       });
-
-      // store.dispatch(
-      //   addTodoAction({
-      //     id: 0,
-      //     name: "Walk the dog",
-      //     complete: false,
-      //   })
-      // );
-
-      // store.dispatch(
-      //   addTodoAction({
-      //     id: 1,
-      //     name: "Wash the car",
-      //     complete: false,
-      //   })
-      // );
-
-      // store.dispatch(
-      //   addTodoAction({
-      //     id: 2,
-      //     name: "Go to the gym",
-      //     complete: true,
-      //   })
-      // );
-
-      // store.dispatch(removeTodoAction(1));
-
-      // store.dispatch(toggleTodoAction(0));
-
-      // store.dispatch(
-      //   addGoalAction({
-      //     id: 0,
-      //     name: "Learn Redux",
-      //   })
-      // );
-
-      // store.dispatch(
-      //   addGoalAction({
-      //     id: 1,
-      //     name: "Lose 20 pounds",
-      //   })
-      // );
-
-      // store.dispatch(removeGoalAction(0));
 
       //DOM code
       function addTodo() {
@@ -274,6 +222,71 @@
       }
 
       document.getElementById("goalBtn").addEventListener("click", addGoal);
+    </script>
+
+    <script type="text/babel">
+      function List(props) {
+        return (
+          <ul>
+            <li>LIST</li>
+          </ul>
+        );
+      }
+
+      class Todos extends React.Component {
+        addItem = (e) => {
+          e.preventDefault();
+          const name = this.input.value;
+          this.input.value = "";
+
+          this.props.store.dispatch(
+            addTodoAction({
+              name,
+              complete: false,
+              id: generateId(),
+            })
+          );
+        };
+
+        render() {
+          return (
+            <div>
+              <h1> To Do List </h1>
+              <input
+                type="text"
+                placeholder="Add Todo"
+                ref={(input) => (this.input = input)}
+              />
+              <button onClick={this.addItem}>Add Todo</button>
+              <List />
+            </div>
+          );
+        }
+      }
+
+      class Goals extends React.Component {
+        render() {
+          return (
+            <div>
+              GOALS
+              <List />
+            </div>
+          );
+        }
+      }
+
+      class App extends React.Component {
+        render() {
+          return (
+            <div>
+              <Todos store={this.props.store} />
+              <Goals />
+            </div>
+          );
+        }
+      }
+
+      ReactDOM.render(<App store={store} />, document.getElementById("app"));
     </script>
   </body>
 </html>
